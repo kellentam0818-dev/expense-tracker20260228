@@ -149,7 +149,9 @@ def register_family_group():
             if len(family_members) == 0:
                 print("Error! Please add at least one member to the family group.")
                 continue
-            break
+            else:
+                print(f"Finished adding family members to the family group '{family_id}'.")
+                break
         elif member_id not in users:
             print("Username does not exist. Please enter a valid username.")
         elif member_id in family_members:
@@ -164,6 +166,22 @@ def register_family_group():
     family_groups[family_id]["members"] = family_members
     return family_id
 
+# Universal submenu function: Handles the logic for "return to main menu/continue operation"
+# Parameter description:
+# - operation_name: Current operation name (such as "expense"/"income"), used for prompt text
+# Return value: True = continue operation, False = return to main menu
+def show_operation_submenu(operation_name):
+    while True:
+        print(f"\n{operation_name.capitalize()} Menu:")
+        print("1. Return to main menu")
+        print(f"2. Continue {operation_name}")
+        sub_choice = input("Enter the number corresponding to your choice(1 or 2): ").strip()
+        if sub_choice == '1':
+            return False
+        elif sub_choice == '2':
+            return True
+        else:
+            print("Invalid choice. Please enter 1 or 2.")
 
 # Get today's date (format: 2026-03-04) for check-in/daily consumption statistics
 def get_current_date():
@@ -174,17 +192,22 @@ today_str = get_current_date()
 
 # Check-in function and simulated check-in record list
 def check_in(user_id):
+    while True:
     # Verify if the user exists
-    if user_id not in users:
-        print(f"Error: User '{user_id}' does not exist!")
-        return
-    
-    today = get_current_date()
-    if not users[user_id]["has_checked_in_today"]:
-        users[user_id]["has_checked_in_today"] = True
-        print(f"✅ {user_id} checked in successfully for {today}!")
-    else:
-        print(f"ℹ️ {user_id} already checked in for {today}.")
+        if user_id not in users:
+            print(f"Error: User '{user_id}' does not exist!")
+            return   
+        today = get_current_date()
+        if not users[user_id]["has_checked_in_today"]:
+            users[user_id]["has_checked_in_today"] = True
+            print(f"✅ {user_id} checked in successfully for {today}!")
+        else:
+            print(f"ℹ️ {user_id} already checked in for {today}.")
+
+        # Check in the submenu and manually select to return/continue to the main menu.
+        continue_flag = show_operation_submenu("check-in")
+        if not continue_flag:
+            return
 
 # === Set daily budget function ===
 def set_daily_budget(user_id):
@@ -206,24 +229,115 @@ def set_daily_budget(user_id):
         print(f"✅ Daily budget set to: ${daily_budget} for user '{user_id}'!")
         return daily_budget
 
+
 # === Add expense ===
 def add_expense(user_id):
-    print("\n===== Add New Expense =====")
-    # Call public function: Get amount + remarks
-    amount, note = _input_amount_and_note("expense")
-    # Call public function: Select expense category
-    category = _select_category("expense")
-    # Call core function: Add record
-    success, msg = add_record(user_id, "expense", amount, category, note)
-    print(msg)
+        while True:
+            print("\n===== Add New Expense =====")
+            # Call public function: Get amount + remarks
+            amount, note = _input_amount_and_note("expense")
+            # Call public function: Select expense category
+            category = _select_category("expense")
+            # Call core function: Add record
+            success, msg = add_record(user_id, "expense", amount, category, note)
+            print(msg)
+            # Call the submenu function to decide whether to return to the main menu or continue adding expenses.
+            continue_flag = show_operation_submenu("expense")
+            if not continue_flag:
+                return
+        # Select option 2 to automatically return to the beginning of the loop and continue adding expenses
+
 
 # === Add income (Call public functions and associate users) ===
 def add_income(user_id):
-    print("\n===== Add New Income =====")
-    # Call public function: Get amount + remarks
-    amount, note = _input_amount_and_note("income")
-    # Call public function: Select income category
-    category = _select_category("income")
-    # Call core function: Add record
-    success, msg = add_record(user_id, "income", amount, category, note)
-    print(msg)
+    while True:
+        print("\n===== Add New Income =====")
+        # Call public function: Get amount + remarks
+        amount, note = _input_amount_and_note("income")
+        # Call public function: Select income category
+        category = _select_category("income")
+        # Call core function: Add record
+        success, msg = add_record(user_id, "income", amount, category, note)
+        print(msg)
+        continue_flag = show_operation_submenu("income")
+        if not continue_flag:
+            return
+
+# === View financial summary (Call core function and associate users) ===
+# General Dispatch Desk: main function
+def main():
+    current_user = None
+    print("="*50)
+    print("Welcome to the Financial Tracker!")
+    print("="*50)
+
+    # 1. Sign in or sign up
+    while True:
+        print("\nPlease select an option:")
+        print("1.Register as an individual user")
+        print("2.Sign in")        
+        choice = input("Enter the number corresponding to your choice: ").strip()
+        if choice == '1':
+            current_user = register_user()
+            break
+        elif choice == '2':
+            user_id = input("Enter your username to sign in: ").strip()
+            if user_id in users:
+                current_user = user_id
+                print(f"Welcome back, {current_user}!")
+                break
+            else:
+                print("Username does not exist. Please try again or sign up.")
+        else:
+            print("Invalid choice. Please enter 1 or 2.")
+
+    # 2. Main menu loop(Execute in a loop until the user chooses to exit.)
+    while True:
+        print("\n" + "="*50)
+        print(f"Current User: {current_user} | User Type: {users[current_user]['type']} | Date: {today_str}")
+        print("="*50)
+        print("\nMain Menu:")
+        print("1. Check-in")
+        print("2. Set Daily Budget")
+        print("3. Add Expense")
+        print("4. Add Income")
+        print("5. View Financial Summary")
+        print("6. Create and set family financial group (if needed).")
+        print("7. Exit")
+        choice = input("Enter the number corresponding to your choice: ").strip()
+
+        # Call the corresponding function based on the user's choice. 
+        # For family users, when viewing the financial summary, calculate the total income and total expenditure for all family members and display the overall financial summary for the family group. For individual users, calculate and display only their own financial summary.
+        if choice == '1':
+            check_in(current_user)
+        elif choice == '2':
+            set_daily_budget(current_user)
+        elif choice == '3':
+            add_expense(current_user)
+        elif choice == '4':
+            add_income(current_user)
+        elif choice == '5':
+            # For family users, calculate finance for all family members; for individual users, calculate only for themselves.
+            if users[current_user]["type"] == "family":
+                family_id = users[current_user]["family_group"]
+                family_members = family_groups[family_id]["members"]
+                total_income, total_expense, surplus = calculate_finance(family_members)
+                print(f"\nFinancial Summary for Family Group '{family_groups[family_id]['name']}':")
+            else:
+                total_income, total_expense, surplus = calculate_finance([current_user])
+                print(f"\nFinancial Summary for User '{current_user}':")
+            print(f"Total Income: ${total_income:.2f}")
+            print(f"Total Expense: ${total_expense:.2f}")
+            print(f"Surplus: ${surplus:.2f}")
+        elif choice == '6':
+            family_id = register_family_group()
+            print(f"User type updated to 'family' and associated with the family group {family_id} successfully!")
+        elif choice == '7':
+            print("Thank you for using the Financial Tracker! Goodbye!")
+            break
+        else:
+            print("Invalid choice. Please enter a number from 1 to 7.")
+
+# Run the main function to start the program
+if __name__ == "__main__":
+    main()
